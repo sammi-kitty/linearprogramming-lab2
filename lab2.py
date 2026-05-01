@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import linprog
 import matplotlib.pyplot as pyplot
 
-ITERATIONS = 1000
+ITERATIONS = 100
 
 def main():
     original_data = np.loadtxt(r"SP500.txt")
@@ -46,44 +46,41 @@ def solve_lp(historical_avg, inflation_rate, c):
     bounds = [(0, None)] * 25
 
     return linprog(
-        c, A_ub = A_ub, b_ub = b_ub, A_eq = A_eq,
+        c = c, A_ub = A_ub, b_ub = b_ub, A_eq = A_eq,
         b_eq = b_eq, bounds = bounds, method = 'highs'
         ).x
 
 
 def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize_type):
     history = []
-    guess = init_guess
-    for i in range(ITERATIONS):
-        c = 2 * variance * guess # LP coefficient
+    x = init_guess
+    for i in range(1, ITERATIONS + 1):
+        c = 2 * variance * x # LP coefficient
 
-        solution = solve_lp(historical_avg, inflation, c)
+        y = solve_lp(historical_avg, inflation, c)
 
         history.append(
-            np.sum(np.square(solution) * variance)
+            np.sum(np.square(y) * variance)
         )
 
         if stepsize_type == 1:
             h = agnostic_step_size(i)
         elif stepsize_type == 2:
-            h = greedy_step_size(guess, solution, variance)
+            h = greedy_step_size(x, y, variance)
         elif stepsize_type == 3:
             h = nike_agnostic(i)
         else:
             return
 
         # print("Old Guess:" + str(guess))
-        print(h)
+        # print(h)
 
-        guess = ((1 - h) * guess) + (h * solution)
+        x = ((1 - h) * x) + (h * y)
     
         # print("New Guess:" + str(guess))
         # print("=" * 30)
     return history
 
-
-def nonlinear_target(x, variance):
-    return np.sum(np.square(x) * variance)
 
 def greedy_step_size(x, y, variance):
     # BEWARE - AI GENERATED
