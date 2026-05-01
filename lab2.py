@@ -22,13 +22,18 @@ def main():
     # Run CGM
     history_agnostic = cgm_implementation(init_guess, historical_avg, variance, inflation, 1)
     history_greedy = cgm_implementation(init_guess, historical_avg, variance, inflation, 2)
-    history_nike = cgm_implementation(init_guess, historical_avg, variance, inflation, 3)
 
-    pyplot.plot(history_agnostic, label="Agnostic")
-    pyplot.plot(history_greedy, label="Greedy")
-    pyplot.plot(history_nike, label="Nike Agnostic")
+    pyplot.figure()
+
+    pyplot.subplot(121)
+    pyplot.plot(history_agnostic[0], label="Agnostic")
+    pyplot.plot(history_greedy[0], label="Greedy")
     pyplot.xlabel('Iteration')
     pyplot.ylabel('Risk')
+    pyplot.legend()
+
+    pyplot.subplot(122)
+    pyplot.plot(history_agnostic[1], label = "Agnostic guess norm")
     pyplot.legend()
     pyplot.show()
 
@@ -52,34 +57,35 @@ def solve_lp(historical_avg, inflation_rate, c):
 
 
 def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize_type):
-    history = []
+    return_history = [None, ]
+    x_norm_history = [None, ]
     x = init_guess
     for i in range(1, ITERATIONS + 1):
         c = 2 * variance * x # LP coefficient
 
         y = solve_lp(historical_avg, inflation, c)
 
-        history.append(
-            np.sum(np.square(y) * variance)
+        return_history.append(
+            np.sum(np.square(x) * variance)
         )
+        x_norm_history.append(np.linalg.norm(x))
+
 
         if stepsize_type == 1:
             h = agnostic_step_size(i)
         elif stepsize_type == 2:
             h = greedy_step_size(x, y, variance)
-        elif stepsize_type == 3:
-            h = nike_agnostic(i)
         else:
             return
 
-        # print("Old Guess:" + str(guess))
+        # print("Old Guess:" + str(x))
         # print(h)
 
         x = ((1 - h) * x) + (h * y)
     
-        # print("New Guess:" + str(guess))
+        # print("New Guess:" + str(x))
         # print("=" * 30)
-    return history
+    return [return_history, x_norm_history, x]
 
 
 def greedy_step_size(x, y, variance):
