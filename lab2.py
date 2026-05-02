@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import linprog
 import matplotlib.pyplot as pyplot
 
-ITERATIONS = 100
+ITERATIONS = 1000
 
 def main():
     original_data = np.loadtxt(r"SP500.txt")
@@ -17,32 +17,40 @@ def main():
     inflation = np.average(historical_avg)
 
     # Set init guess
-    init_guess = np.ones(variance.size) / variance.size
+    init_guess = initial_guess(historical_avg, inflation)
 
     # Run CGM
     history_agnostic = cgm_implementation(init_guess, historical_avg, variance, inflation, 1)
     history_greedy = cgm_implementation(init_guess, historical_avg, variance, inflation, 2)
 
-    pyplot.figure()
+    # pyplot.figure()
 
-    pyplot.subplot(121)
+    # pyplot.subplot(121)
     pyplot.plot(history_agnostic[0], label="Agnostic")
     pyplot.plot(history_greedy[0], label="Greedy")
     pyplot.xlabel('Iteration')
     pyplot.ylabel('Risk')
     pyplot.legend()
-
-    pyplot.subplot(122)
-    pyplot.plot(history_agnostic[1], label = "Agnostic guess norm")
-    pyplot.legend()
     pyplot.show()
 
-def solve_lp(historical_avg, inflation_rate, c):
+    '''pyplot.subplot(122)
+    # pyplot.plot(history_agnostic[1], label = "Stock portion")
+    x_composition_history = history_agnostic[1]
+    for i in range(25):
+        stock = x_composition_history[:, i]
+        pyplot.plot(stock, label=f"Stock x_{i}")
+        
+    pyplot.xlabel('Iteration')
+    pyplot.ylabel('')
+    pyplot.legend()
+    pyplot.show()'''
 
-    # Convert historical_avg @ x >= inflation rate to 
-    # -historical_avg @ x <= -inflation_rate
+def solve_lp(historical_avg, inflation, c):
+
+    # Convert historical_avg @ x >= inflation to 
+    # -historical_avg @ x <= -inflation
     A_ub = [-historical_avg]
-    b_ub = [-inflation_rate]
+    b_ub = [-inflation]
 
     # Make sure that sum(x) == 1
     A_eq = [np.ones(25)]
@@ -57,8 +65,8 @@ def solve_lp(historical_avg, inflation_rate, c):
 
 
 def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize_type):
-    return_history = [None, ]
-    x_norm_history = [None, ]
+    return_history = []
+    x_composition_history = np.zeros([ITERATIONS, 25])
     x = init_guess
     for i in range(1, ITERATIONS + 1):
         c = 2 * variance * x # LP coefficient
@@ -68,7 +76,7 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
         return_history.append(
             np.sum(np.square(x) * variance)
         )
-        x_norm_history.append(np.linalg.norm(x))
+        np.insert(x_composition_history, i, x, axis=0)
 
 
         if stepsize_type == 1:
@@ -78,15 +86,31 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
         else:
             return
 
-        # print("Old Guess:" + str(x))
-        # print(h)
 
         x = ((1 - h) * x) + (h * y)
-    
-        # print("New Guess:" + str(x))
-        # print("=" * 30)
-    return [return_history, x_norm_history, x]
+ 
+    # print(x_composition_history)
+    return [return_history, x_composition_history, x]
 
+def initial_guess(historical_avg, inflation):
+    c = np.ones(25)
+    
+    # Convert historical_avg @ x >= inflation to 
+    # -historical_avg @ x <= -inflation
+    A_ub = [-historical_avg]
+    b_ub = [-inflation]
+
+    # Make sure that sum(x) == 1
+    A_eq = [np.ones(25)]
+    b_eq = [1]
+
+    bounds = [(0, None)] * 25
+
+    return linprog(
+        c = c, A_ub = A_ub, b_ub = b_ub, A_eq = A_eq,
+        b_eq = b_eq, bounds = bounds, method = 'highs'
+        ).x
+    
 
 def greedy_step_size(x, y, variance):
     # BEWARE - AI GENERATED
