@@ -29,20 +29,19 @@ def main():
     history_agnostic = cgm_implementation(init_guess, historical_avg, variance, inflation, 1)
     history_greedy = cgm_implementation(init_guess, historical_avg, variance, inflation, 2)
 
+    # Plot graphs
     plotting(history_greedy, history_agnostic, name_data)
 
+    # Print LaTeX-ready tabular of solutions
     agnostic_solution = history_agnostic[3]
     greedy_solution = history_greedy[3]
-
-    # print(f"Agnostic solution: {history_agnostic[3]}")
-    # print(f"Greedy solution: {history_greedy[3]}")
+    
     for i in range(N):
         print(
             f'''{name_data[i]} &
             {100 * agnostic_solution[i]:.6f}\% &
             {100 * greedy_solution[i]:.6f}\%
             \\\\ \hline''')
-    
 
 def solve_lp(historical_avg, inflation, c):
 
@@ -62,7 +61,6 @@ def solve_lp(historical_avg, inflation, c):
         b_eq = b_eq, bounds = bounds, method = 'highs'
         ).x
 
-
 def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize_type):
     risk_history = []
     x_composition_history = np.empty([ITERATIONS, N])
@@ -74,6 +72,7 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
 
         y = solve_lp(historical_avg, inflation, c)
 
+        # Save values to history (for plotting)
         risk_history.append(
             np.sum(np.square(x) * variance)
         )
@@ -90,16 +89,15 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
         else:
             return
 
-        
+        # Print if algorithm has converged (difference of norm of x_i and x_{i-1} = 0) - only used for debugging purposes
         if np.linalg.norm(x_composition_history[i-1] - x_composition_history[i-2]) == 0 and not(has_converged) and i > 5:
             print(f"Converged at iteration {i} for type {stepsize_type}")
             has_converged = True
-            
-            
 
-
+        # Update value of x
         x = ((1 - h) * x) + (h * y)
 
+    # Rearrange composition history to be used in plotting
     composition_history_star = [None] * N
     for i in range(N):
         composition_history_star[i] = x_composition_history[:, i]
@@ -108,8 +106,10 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
 
 def initial_guess(historical_avg, inflation):
     naive_start = np.ones(N) / N
+    naive_start[17] = 3/25
+    naive_start[20] = 0
+    naive_start[13] = 0
     return naive_start
-    
 
 def greedy_step_size(x, y, variance):
     # BEWARE - AI GENERATED
@@ -139,15 +139,8 @@ def greedy_step_size(x, y, variance):
 def agnostic_step_size(i):
     return 2 / (i + 1)
 
-def nike_agnostic(i):
-    return 2 / (i**1.5 + 2)
-
-
-# Pseudo code:
-# - select initial guess
-# - 
 def plotting(history_greedy, history_agnostic, name_data):
-    # Plot current risk
+    # Plot risk
     pyplot.plot(history_agnostic[0], label="Agnostic")
     pyplot.plot(history_greedy[0], label="Greedy")
     pyplot.xlabel('Iteration $k$')
@@ -157,7 +150,7 @@ def plotting(history_greedy, history_agnostic, name_data):
     pyplot.savefig(f"{ITERATIONS}-iter-risk.png", dpi=400)
     pyplot.clf()
 
-    # Plot current profit
+    # Plot profit
     pyplot.plot(history_agnostic[2], label="Agnostic")
     pyplot.plot(history_greedy[2], label="Greedy")
     pyplot.xlabel('Iteration $k$')
@@ -167,6 +160,8 @@ def plotting(history_greedy, history_agnostic, name_data):
     pyplot.savefig(f"{ITERATIONS}-iter-profit.png", dpi=400)
     pyplot.clf()
 
+    # Plot composition (one for agnostic and one for greedy)
+    # Use different linestyles since colours run out
     fig = pyplot.figure()
     ax = fig.add_axes([0.1, 0.1, 0.6, 0.75])
     x_composition_history = history_greedy[1]
