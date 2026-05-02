@@ -4,6 +4,8 @@ import matplotlib.pyplot as pyplot
 
 ITERATIONS = 1000
 
+N = 25
+
 def main():
     original_data = np.loadtxt(r"SP500.txt")
     name_data = []
@@ -27,45 +29,14 @@ def main():
     history_agnostic = cgm_implementation(init_guess, historical_avg, variance, inflation, 1)
     history_greedy = cgm_implementation(init_guess, historical_avg, variance, inflation, 2)
 
-    
-    # Plot current risk
-    pyplot.plot(history_agnostic[0], label="Agnostic")
-    pyplot.plot(history_greedy[0], label="Greedy")
-    pyplot.xlabel('Iteration')
-    pyplot.ylabel('Risk')
-    pyplot.title("Risk för $x^{(k)}$ given av CGM, för steglängd $greedy$ och $agnostic$.")
-    pyplot.legend()
-    pyplot.savefig(f"{ITERATIONS}-iter-risk.png", dpi=400)
-    pyplot.clf()
-
-    # Plot current profit
-    pyplot.plot(history_agnostic[2], label="Agnostic")
-    pyplot.plot(history_greedy[2], label="Greedy")
-    pyplot.xlabel('Iteration')
-    pyplot.ylabel('Avkastning')
-    pyplot.title("Avkastning för $x^{(k)}$ given av CGM, för steglängd $greedy$ och $agnostic$.")
-    pyplot.legend()
-    pyplot.savefig(f"{ITERATIONS}-iter-profit.png", dpi=400)
-    pyplot.clf()
-
-    fig, ax = pyplot.subplots(figsize = (7, 2.5))
-    x_composition_history = history_greedy[1]
-    i = 0
-    for stock in x_composition_history:
-        ax.plot(stock, label=f'{name_data[i]}')
-        i = i + 1
-    ax.set_ylabel('Del av portfölj, andel av 1')
-    ax.set_xlabel('Iteration')
-    fig.legend(fontsize = 'xx-small', loc='outside right upper', labelspacing=0.2,)
-    fig.savefig(f"{ITERATIONS}-iter-composition.png", dpi=400)
-    
+    plotting(history_greedy, history_agnostic, name_data)
 
     agnostic_solution = history_agnostic[3]
     greedy_solution = history_greedy[3]
 
     # print(f"Agnostic solution: {history_agnostic[3]}")
     # print(f"Greedy solution: {history_greedy[3]}")
-    for i in range(25):
+    for i in range(N):
         print(
             f'''{name_data[i]} &
             {100 * agnostic_solution[i]:.6f}\% &
@@ -81,10 +52,10 @@ def solve_lp(historical_avg, inflation, c):
     b_ub = [-inflation]
 
     # Make sure that sum(x) == 1
-    A_eq = [np.ones(25)]
+    A_eq = [np.ones(N)]
     b_eq = [1]
 
-    bounds = [(0, None)] * 25
+    bounds = [(0, None)] * N
 
     return linprog(
         c = c, A_ub = A_ub, b_ub = b_ub, A_eq = A_eq,
@@ -94,7 +65,7 @@ def solve_lp(historical_avg, inflation, c):
 
 def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize_type):
     risk_history = []
-    x_composition_history = np.empty([ITERATIONS, 25])
+    x_composition_history = np.empty([ITERATIONS, N])
     profit_history = []
     x = init_guess
     has_converged = False
@@ -129,33 +100,14 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
 
         x = ((1 - h) * x) + (h * y)
 
-    composition_history_star = [None] * 25
-    for i in range(25):
+    composition_history_star = [None] * N
+    for i in range(N):
         composition_history_star[i] = x_composition_history[:, i]
     
     return [risk_history, composition_history_star, profit_history, x]
 
 def initial_guess(historical_avg, inflation):
-    '''
-    c = np.ones(25) + 1
-    
-    # Convert historical_avg @ x >= inflation to 
-    # -historical_avg @ x <= -inflation
-    A_ub = [-historical_avg]
-    b_ub = [-inflation]
-
-    # Make sure that sum(x) == 1
-    A_eq = [np.ones(25)]
-    b_eq = [1]
-
-    bounds = [(0, None)] * 25
-
-    return linprog(
-        c = c, A_ub = A_ub, b_ub = b_ub, A_eq = A_eq,
-        b_eq = b_eq, bounds = bounds, method = 'highs'
-        ).x
-    '''
-    naive_start = np.ones(25) / 25
+    naive_start = np.ones(N) / N
     return naive_start
     
 
@@ -194,5 +146,61 @@ def nike_agnostic(i):
 # Pseudo code:
 # - select initial guess
 # - 
+def plotting(history_greedy, history_agnostic, name_data):
+    # Plot current risk
+    pyplot.plot(history_agnostic[0], label="Agnostic")
+    pyplot.plot(history_greedy[0], label="Greedy")
+    pyplot.xlabel('Iteration $k$')
+    pyplot.ylabel('Risk')
+    pyplot.title("Risk för $x^{(k)}$ given av CGM, för steglängd $greedy$ och $agnostic$.")
+    pyplot.legend()
+    pyplot.savefig(f"{ITERATIONS}-iter-risk.png", dpi=400)
+    pyplot.clf()
+
+    # Plot current profit
+    pyplot.plot(history_agnostic[2], label="Agnostic")
+    pyplot.plot(history_greedy[2], label="Greedy")
+    pyplot.xlabel('Iteration $k$')
+    pyplot.ylabel('Avkastning')
+    pyplot.title("Avkastning för $x^{(k)}$ given av CGM, för steglängd $greedy$ och $agnostic$.")
+    pyplot.legend()
+    pyplot.savefig(f"{ITERATIONS}-iter-profit.png", dpi=400)
+    pyplot.clf()
+
+    fig = pyplot.figure()
+    ax = fig.add_axes([0.1, 0.1, 0.6, 0.75])
+    x_composition_history = history_greedy[1]
+    i = 0
+    for stock in x_composition_history:
+        if i < 10:
+            ax.plot(stock, label=f'$x_{{ {i + 1} }}$, {name_data[i]}')
+        elif 10 <= i < 20:
+            ax.plot(stock, label=f'$x_{{ {i + 1} }}$, {name_data[i]}', linestyle='--')
+        else:
+            ax.plot(stock, label=f'$x_{{ {i + 1} }}$, {name_data[i]}', linestyle=':')
+        i = i + 1
+    ax.set_ylabel('Del av portfölj, andel av 1')
+    ax.set_xlabel('Iteration $k$')
+    ax.set_title('Portföljkomposition $x^{(k)}$, greedy')
+    fig.legend(fontsize = 'xx-small', loc='outside right upper', labelspacing=0.2,)
+    fig.savefig(f"{ITERATIONS}-iter-composition-greedy.png", dpi=400)
+
+    fig = pyplot.figure()
+    ax = fig.add_axes([0.1, 0.1, 0.6, 0.75])
+    x_composition_history = history_agnostic[1]
+    i = 0
+    for stock in x_composition_history:
+        if i < 10:
+            ax.plot(stock, label=f'$x_{{ {i + 1} }}$, {name_data[i]}')
+        elif 10 <= i < 20:
+            ax.plot(stock, label=f'$x_{{ {i + 1} }}$, {name_data[i]}', linestyle='--')
+        else:
+            ax.plot(stock, label=f'$x_{{ {i + 1} }}$, {name_data[i]}', linestyle=':')
+        i = i + 1
+    ax.set_ylabel('Del av portfölj, andel av 1')
+    ax.set_xlabel('Iteration $k$')
+    ax.set_title('Portföljkomposition $x^{(k)}$, agnostic')
+    fig.legend(fontsize = 'xx-small', loc='outside right upper', labelspacing=0.2,)
+    fig.savefig(f"{ITERATIONS}-iter-composition-agnostic.png", dpi=400)
 
 main()
