@@ -35,13 +35,12 @@ def main():
     # Print LaTeX-ready tabular of solutions
     agnostic_solution = history_agnostic[3]
     greedy_solution = history_greedy[3]
-    
-    for i in range(N):
-        print(
-            f'''{name_data[i]} &
-            {100 * agnostic_solution[i]:.6f}\% &
-            {100 * greedy_solution[i]:.6f}\%
-            \\\\ \hline''')
+    # for i in range(N):
+    #     print(
+    #         f'''{name_data[i]} &
+    #         {100 * agnostic_solution[i]:.6f}\% &
+    #         {100 * greedy_solution[i]:.6f}\%
+    #         \\\\ \hline''')
 
 def solve_lp(historical_avg, inflation, c):
 
