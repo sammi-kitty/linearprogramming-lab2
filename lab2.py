@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import linprog
 import matplotlib.pyplot as pyplot
 
-ITERATIONS = 1000
+ITERATIONS = 10000
 
 N = 25
 
@@ -85,6 +85,8 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
             h = agnostic_step_size(i)
         elif stepsize_type == 2:
             h = greedy_step_size(x, y, variance)
+            if not(has_converged):
+                print(f"{i} & {h} \\\\ \hline")
         else:
             return
 
