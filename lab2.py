@@ -103,14 +103,14 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
             h = agnostic_step_size(i)
         elif stepsize_type == 2:
             h = greedy_step_size(x, y, variance)
-            # if not(has_converged):
-               # print(f"{i} & {h} \\\\ \hline")
+            # if not(has_converged) and i > 8000:
+            #    print(f"{i} & {h:.8f} \\\\ \hline")
         else:
             return
 
         # Print if algorithm has converged (difference of norm of x_i and x_{i-1} = 0) - only used for debugging purposes
         if np.linalg.norm(x_composition_history[i-1] - x_composition_history[i-2]) == 0 and not(has_converged) and i > 5:
-            print(f"Converged at iteration {i} for type {stepsize_type}")
+            print(f"Converged at iteration {i} for type {stepsize_type} with alpha {inflation}")
             has_converged = True
 
         # Update value of x
@@ -124,24 +124,8 @@ def cgm_implementation(init_guess, historical_avg, variance, inflation, stepsize
     return [risk_history, composition_history_star, profit_history, x]
 
 def initial_guess(historical_avg, inflation):
-    c = np.ones(N) / N
-
-    # Convert historical_avg @ x >= inflation to 
-    # -historical_avg @ x <= -inflation
-    A_ub = [-historical_avg]
-    b_ub = [-inflation]
-
-    # Make sure that sum(x) == 1
-    A_eq = [np.ones(N)]
-    b_eq = [1]
-
-    bounds = [(0, None)] * N
-
-    naive_start = linprog(
-        c = c, A_ub = A_ub, b_ub = b_ub, A_eq = A_eq,
-        b_eq = b_eq, bounds = bounds, method = 'highs'
-        ).x
-
+    naive_start = np.zeros(25)
+    naive_start[18 - 1] = 1
     return naive_start
 
 def greedy_step_size(x, y, variance):
