@@ -42,15 +42,16 @@ def main():
     alpha1_greedy_solution = alpha1_history_greedy[3]
     alpha2_agnostic_solution = alpha2_history_agnostic[3]
     alpha2_greedy_solution = alpha2_history_greedy[3]
-    # for i in range(N):
-    #     print(
-    #         f'''{name_data[i]} &
-    #         {100 * alpha1_agnostic_solution[i]:.6f}\% &
-    #         {100 * alpha1_greedy_solution[i]:.6f}\% &
-    #         {100 * alpha2_agnostic_solution[i]:.6f}\% &
-    #         {100 * alpha2_greedy_solution[i]:.6f}\%
-    #         \\\\ \hline''')
+    for i in range(N):
+        print(
+            f'''{name_data[i]} &
+            {100 * alpha1_agnostic_solution[i]:.6f}\% &
+            {100 * alpha1_greedy_solution[i]:.6f}\% &
+            {100 * alpha2_agnostic_solution[i]:.6f}\% &
+            {100 * alpha2_greedy_solution[i]:.6f}\%
+            \\\\ \hline''')
 
+    '''
     print(f"Avkastning för alpha1 agnostic: {np.sum(historical_avg * alpha1_agnostic_solution):.10f}")
     print(f"Avkastning för alpha1 greedy: {np.sum(historical_avg * alpha1_greedy_solution):.10f}")
     print(f"Avkastning för alpha2 agnostic: {np.sum(historical_avg * alpha2_agnostic_solution):.10f}")
@@ -60,6 +61,7 @@ def main():
     print(f"Risk för alpha1 greedy: {np.sum(variance * np.square(alpha1_greedy_solution)):.10f}")
     print(f"Risk för alpha2 agnostic: {np.sum(variance * np.square(alpha2_agnostic_solution)):.10f}")
     print(f"Risk för alpha2 greedy: {np.sum(variance * np.square(alpha2_greedy_solution)):.10f}")
+    '''
 
 def solve_lp(historical_avg, inflation, c):
 
